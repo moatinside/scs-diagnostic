@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SCSかんたん診断｜あなたの会社のセキュリティ評価レベルをチェック</title>
+<style>
+  /* ====== Variables ====== */
+  :root {
+    --primary: #0f3460;
+    --accent: #e94560;
+    --bg: #f0f2f5;
+    --card-bg: #ffffff;
+    --text: #1a1a2e;
+    --muted: #6c757d;
+    --success: #2d6a4f;
+    --warning: #e76f51;
+    --danger: #e94560;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Hiragino Sans", "Noto Sans JP", "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  /* ====== Hero ====== */
+  .hero {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 50%, #1a1a2e 100%);
+    color: white;
+    text-align: center;
+    padding: 80px 20px 60px;
+  }
+  .hero h1 { font-size: 42px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.5px; }
+  .hero p { font-size: 20px; opacity: 0.85; max-width: 600px; margin: 0 auto; }
+  .hero .badge {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    padding: 6px 20px;
+    border-radius: 30px;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .hero .note { font-size: 15px; opacity: 0.6; margin-top: 16px; }
+
+  /* ====== Container ====== */
+  .container { max-width: 720px; margin: 0 auto; padding: 0 16px; }
+
+  /* ====== Info Strip ====== */
+  .info-strip {
+    background: #fff5f5;
+    border: 1px solid #ffe0e0;
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin: -30px auto 30px;
+    max-width: 720px;
+    font-size: 16px;
+    color: #555;
+    position: relative;
+    z-index: 2;
+  }
+  .info-strip strong { color: var(--accent); }
+
+  /* ====== Quiz ====== */
+  .quiz-section { padding: 30px 0 60px; }
+  .question-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 28px 30px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    border: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .question-card.answered {
+    border-color: var(--primary);
+    background: #f8faff;
+  }
+  .q-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .q-number {
+    background: var(--primary);
+    color: white;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .q-category {
+    font-size: 13px;
+    color: var(--muted);
+    background: #eef3ff;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  .q-text {
+    font-size: 19px;
+    font-weight: 600;
+    margin: 8px 0 16px;
+  }
+  .q-options { display: flex; gap: 10px; flex-wrap: wrap; }
+  .q-options label {
+    flex: 1;
+    min-width: 100px;
+    padding: 12px 16px;
+    border: 2px solid #e0e4ea;
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .q-options label:hover { border-color: var(--primary); background: #f0f4ff; }
+  .q-options input[type="radio"] { display: none; }
+  .q-options input[type="radio"]:checked + label {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+  }
+  .q-options .opt-no:checked + label { border-color: var(--danger); background: var(--danger); color: white; }
+  .q-options .opt-yes:checked + label { border-color: var(--success); background: var(--success); color: white; }
+
+  /* ====== Progress ====== */
+  .progress-bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: white;
+    padding: 12px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .progress-track {
+    flex: 1;
+    height: 8px;
+    background: #e8ecf1;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    width: 0%;
+    border-radius: 10px;
+    transition: width 0.4s ease;
+  }
+  .progress-text { font-size: 14px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+
+  /* ====== Submit ====== */
+  .submit-area {
+    text-align: center;
+    padding: 20px 0;
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 18px 60px;
+    border-radius: 50px;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(15,52,96,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(15,52,96,0.4); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ====== Result ====== */
+  .result-section { display: none; padding: 40px 0 80px; }
+  .result-card {
+    background: var(--card-bg);
+    border-radius: 24px;
+    padding: 40px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+    text-align: center;
+  }
+  .result-level {
+    font-size: 64px;
+    font-weight: 800;
+    margin: 16px 0;
+  }
+  .result-label {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .result-desc {
+    font-size: 18px;
+    color: #555;
+    max-width: 500px;
+    margin: 0 auto 24px;
+  }
+  .score-bar {
+    height: 12px;
+    background: #e8ecf1;
+    border-radius: 10px;
+    margin: 20px 0;
+    overflow: hidden;
+  }
+  .score-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 1s ease;
+  }
+  .score-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+  .result-cta {
+    background: linear-gradient(135deg, #fff5f5, #ffe0e0);
+    border: 2px solid var(--accent);
+    border-radius: 16px;
+    padding: 28px;
+    margin-top: 24px;
+  }
+  .result-cta h3 { font-size: 20px; color: var(--accent); margin-bottom: 8px; }
+  .result-cta p { font-size: 16px; color: #555; margin-bottom: 16px; }
+  .btn-cta {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    padding: 14px 40px;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .btn-cta:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(233,69,96,0.4); }
+  .btn-reset {
+    display: inline-block;
+    background: transparent;
+    color: var(--muted);
+    border: 2px solid #ddd;
+    padding: 12px 32px;
+    border-radius: 50px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 12px;
+    text-decoration: none;
+  }
+  .btn-reset:hover { border-color: var(--muted); }
+
+  /* ====== Breakdown ====== */
+  .breakdown { text-align: left; margin-top: 28px; }
+  .breakdown h4 { font-size: 18px; margin-bottom: 12px; color: var(--primary); }
+  .breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 15px;
+  }
+  .breakdown-item .cat { color: var(--muted); }
+  .breakdown-item .score { font-weight: 600; }
+
+  /* ====== Footer ====== */
+  .footer {
+    text-align: center;
+    padding: 30px 16px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* ====== Responsive ====== */
+  @media (max-width: 500px) {
+    .hero h1 { font-size: 30px; }
+    .hero p { font-size: 17px; }
+    .q-options { flex-direction: column; }
+    .q-options label { min-width: auto; }
+    .question-card { padding: 20px; }
+    .result-card { padding: 24px; }
+    .result-level { font-size: 48px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== HERO ====== -->
+<section class="hero">
+  <div class="badge">無料 ⚡ 3分で完了</div>
+  <h1>SCS<br>かんたん診断</h1>
+  <p>経済産業省が推進するSCS評価制度。<br>「ウチの会社、どれくらい準備できてる？」を15問でチェック</p>
+  <p class="note">※回答は匿名。個人情報は不要です。</p>
+</section>
+
+<div class="container">
+  <div class="info-strip">
+    💡 <strong>SCS評価制度</strong>とは、企業のサプライチェーンセキュリティの取組状況を<br>
+    ★1〜★5で評価する国の制度です。2026年度末から本格運用開始予定。
+  </div>
+</div>
+
+<!-- ====== PROGRESS ====== -->
+<div class="progress-bar" id="progressBar">
+  <span class="progress-text" id="progressText">0 / 15</span>
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+</div>
+
+<!-- ====== QUIZ ====== -->
+<section class="quiz-section" id="quizSection">
+  <div class="container" id="questionsContainer"></div>
+
+  <div class="submit-area container">
+    <button class="btn-primary" id="submitBtn" disabled onclick="submitQuiz()">
+      診断する 🚀
+    </button>
+    <p style="font-size:14px;color:#999;margin-top:8px;">すべての質問に答えると診断できます</p>
+  </div>
+</section>
+
+<!-- ====== RESULT ====== -->
+<section class="result-section" id="resultSection">
+  <div class="container">
+    <div class="result-card" id="resultCard"></div>
+    <div style="text-align:center;margin-top:20px;">
+      <button class="btn-reset" onclick="resetQuiz()">もう一度診断する</button>
+    </div>
+  </div>
+</section>
+
+<div class="footer">
+  SCSかんたん診断 v1.0 — 本診断は参考値です。正式な評価はSCS認定機関にご確認ください。
+</div>
+
+<script>
+// ====== Questions ======
+const questions = [
+  { id: 1, cat: "基本", text: "ISMS（ISO27001）やPマークを取得していますか？" },
+  { id: 2, cat: "基本", text: "情報セキュリティ基本方針を文書化して社内周知していますか？" },
+  { id: 3, cat: "基本", text: "セキュリティを担当する部署・専任者はいますか？" },
+  { id: 4, cat: "体制", text: "従業員に対するセキュリティ教育・訓練を定期的に実施していますか？" },
+  { id: 5, cat: "体制", text: "セキュリティインシデント発生時の対応手順は決まっていますか？" },
+  { id: 6, cat: "体制", text: "セキュリティ関連の予算は確保されていますか？" },
+  { id: 7, cat: "技術", text: "社内のPC・サーバーにウイルス対策ソフトを導入していますか？" },
+  { id: 8, cat: "技術", text: "アクセス権限（パスワード・ID管理）は適切に管理されていますか？" },
+  { id: 9, cat: "技術", text: "データのバックアップを定期的に取得していますか？" },
+  { id: 10, cat: "技術", text: "社内外からのネットワークアクセスにファイアウォールを設定していますか？" },
+  { id: 11, cat: "供給", text: "自社のサプライヤー（取引先）リストを全て把握していますか？" },
+  { id: 12, cat: "供給", text: "取引先のセキュリティ評価を実施したことがありますか？" },
+  { id: 13, cat: "供給", text: "部品表（BOM）はデジタル管理されていますか？（紙やExcelでも可）" },
+  { id: 14, cat: "供給", text: "製造終了（EOL）部品の管理体制はありますか？" },
+  { id: 15, cat: "外部", text: "取引先からセキュリティ評価依頼を受けたことがありますか？" }
+];
+
+const answers = {};
+
+function renderQuestions() {
+  const container = document.getElementById('questionsContainer');
+  container.innerHTML = questions.map((q, i) => `
+    <div class="question-card" id="qCard${q.id}">
+      <div class="q-header">
+        <span class="q-number">${i + 1}</span>
+        <span class="q-category">${q.cat}</span>
+      </div>
+      <div class="q-text">${q.text}</div>
+      <div class="q-options">
+        <input type="radio" name="q${q.id}" id="q${q.id}_no" value="0" class="opt-no" onchange="answer(${q.id}, 0)">
+        <label for="q${q.id}_no">❌ いいえ</label>
+        <input type="radio" name="q${q.id}" id="q${q.id}_partial" value="1" onchange="answer(${q.id}, 1)">
+        <label for="q${q.id}_partial">△ 一部対応</label>
+        <input type="radio" name="q${q.id}" id="q${q.id}_yes" value="2" class="opt-yes" onchange="answer(${q.id}, 2)">
+        <label for="q${q.id}_yes">✅ はい</label>
+      </div>
+    </div>
+  `).join('');
+}
+
+function answer(id, val) {
+  answers[id] = val;
+  document.getElementById(`qCard${id}`).classList.add('answered');
+  updateProgress();
+}
+
+function updateProgress() {
+  const answered = Object.keys(answers).length;
+  const total = questions.length;
+  const pct = (answered / total) * 100;
+  document.getElementById('progressText').textContent = `${answered} / ${total}`;
+  document.getElementById('progressFill').style.width = `${pct}%`;
+  document.getElementById('submitBtn').disabled = answered < total;
+}
+
+function submitQuiz() {
+  const total = questions.length * 2;
+  let score = Object.values(answers).reduce((a, b) => a + b, 0);
+  const pct = Math.round((score / total) * 100);
+
+  // Categorize scores
+  let level, label, desc, color;
+  if (pct < 30) {
+    level = "★1"; label = "SCS未対応レベル"; color = "#6c757d";
+    desc = "セキュリティ対策の基礎から整備が必要な状態です。まずは情報セキュリティ基本方針の策定から始めましょう。";
+  } else if (pct < 50) {
+    level = "★2"; label = "SCS準備レベル"; color = "#fd7e14";
+    desc = "基本的な対策は始まっていますが、仕組みとして整備できていません。SCS取得には体制構築からの支援が有効です。";
+  } else if (pct < 70) {
+    level = "★3"; label = "SCS目標レベル"; color = "#0f3460";
+    desc = "一定のセキュリティ対策は取れています。SCS★3取得に向けて、評価準備と不足項目の補強を進めましょう。";
+  } else {
+    level = "★3+"; label = "SCS取得目前"; color = "#2d6a4f";
+    desc = "高い水準でセキュリティ対策が整っています。あとは第三者評価を受けるだけでSCS★3取得が視野に入ります。";
+  }
+
+  // Calculate category breakdown
+  const categories = {};
+  questions.forEach(q => {
+    if (!categories[q.cat]) categories[q.cat] = { total: 0, score: 0, count: 0 };
+    categories[q.cat].total += 2;
+    categories[q.cat].score += (answers[q.id] || 0);
+    categories[q.cat].count++;
+  });
+
+  const breakdownHtml = Object.entries(categories).map(([cat, d]) => {
+    const catPct = Math.round((d.score / d.total) * 100);
+    return `<div class="breakdown-item">
+      <span class="cat">${cat === '基本' ? '📋 基本' : cat === '体制' ? '👥 体制' : cat === '技術' ? '🖥️ 技術' : cat === '供給' ? '🔗 供給' : '🌐 外部'}</span>
+      <span class="score">${d.score}/${d.total} (${catPct}%)</span>
+    </div>`;
+  }).join('');
+
+  const resultHtml = `
+    <p style="font-size:18px;color:#888;">あなたのSCS対応度</p>
+    <div class="result-level" style="color:${color}">${level}</div>
+    <div class="result-label">${label}</div>
+    <div class="result-desc">${desc}</div>
+
+    <div style="margin: 8px 0;">
+      <span style="font-size:32px;font-weight:700;color:${color}">${score}</span>
+      <span style="font-size:18px;color:#888;"> / ${total} 点（${pct}%）</span>
+    </div>
+    <div class="score-bar">
+      <div class="score-fill" style="width:${pct}%;background:${color};"></div>
+    </div>
+    <div class="score-labels">
+      <span>★1 未対応</span>
+      <span>★2 準備中</span>
+      <span>★3 目標</span>
+      <span>★3+ 取得目前</span>
+    </div>
+
+    <div class="breakdown">
+      <h4>📊 カテゴリ別スコア</h4>
+      ${breakdownHtml}
+    </div>
+
+    <div class="result-cta">
+      <h3>🔍 詳しい診断レポートをご希望の方</h3>
+      <p>15問ではカバーしきれなかった詳細項目を含む<br>無料診断レポートをご用意しています。</p>
+      <p style="font-size:14px;color:#888;margin-bottom:16px;">※レポートはメールでお届けします</p>
+      <a target="_blank" rel="noopener" href="https://docs.google.com/forms/d/e/1FAIpQLSc-dwd_ciJ-3LMm9ZLgM5r_NLE4NjlzfjnhXV9aIPIJVAPUtg/viewform?usp=pp_url&entry.327276705=&entry.1061234786=&entry.1211377642=&entry.1004803223=${score}点&entry.1256568288=${level}" class="btn-cta" style="display:inline-block;border:none;cursor:pointer;">
+        無料レポートを受け取る 📧
+      </a>
+      <p style="font-size:13px;color:#999;margin-top:12px;">クリックするとGoogle Formsが開きます（所要1分）</p>
+    </div>
+  `;
+
+  document.getElementById('resultCard').innerHTML = resultHtml;
+  document.getElementById('quizSection').style.display = 'none';
+  document.getElementById('resultSection').style.display = 'block';
+  document.getElementById('progressBar').style.display = 'none';
+
+  // Scroll to result
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetQuiz() {
+  Object.keys(answers).forEach(k => delete answers[k]);
+  document.querySelectorAll('input[type="radio"]:checked').forEach(el => el.checked = false);
+  document.querySelectorAll('.question-card').forEach(el => el.classList.remove('answered'));
+  document.getElementById('quizSection').style.display = 'block';
+  document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('progressBar').style.display = 'flex';
+  updateProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Initialize
+renderQuestions();
+updateProgress();
+</script>
+</body>
+</html>

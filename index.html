@@ -476,6 +476,15 @@ function submitQuiz() {
       </a>
       <p style="font-size:13px;color:#999;margin-top:12px;">クリックするとGoogle Formsが開きます（所要1分）</p>
     </div>
+
+    <div class="result-cta" style="border-color:var(--primary);background:linear-gradient(135deg,#f0f4ff,#e8f0fe);margin-top:16px;">
+      <h3 style="color:var(--primary);">💬 専門家に無料相談する</h3>
+      <p>「診断結果を見て具体的に何をすればいいかわからない」<br>そんな方に、SCS対策の第一歩を30分でご提案します。</p>
+      <a href="mailto:?subject=SCSかんたん診断について相談したい&body=SCSかんたん診断を利用しました。%0A%0A診断スコア：${score}点（${pct}%）%0A診断レベル：${level}%0A%0A無料相談を希望します。%0A【会社名】%0A【お名前】%0A【ご連絡先】" class="btn-cta" style="display:inline-block;border:none;cursor:pointer;background:var(--primary);">
+        無料相談を申し込む 📅
+      </a>
+      <p style="font-size:13px;color:#999;margin-top:12px;">メールアプリが開きます。会社名・お名前をご記入の上、送信してください。</p>
+    </div>
   `;
 
   document.getElementById('resultCard').innerHTML = resultHtml;

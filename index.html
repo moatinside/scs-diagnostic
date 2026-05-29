@@ -418,6 +418,9 @@ function updateProgress() {
   document.getElementById('submitBtn').disabled = answered < total;
 }
 
+// Email worker URL
+const WORKER_URL = 'https://scs-email-worker.funkapart.workers.dev';
+
 function submitQuiz() {
   const total = questions.length * 2;
   let score = Object.values(answers).reduce((a, b) => a + b, 0);
@@ -482,19 +485,22 @@ function submitQuiz() {
     </div>
 
     <div class="result-cta">
-      <h3>🔍 詳しい診断レポートをご希望の方</h3>
-      <p>15問ではカバーしきれなかった詳細項目を含む<br>無料診断レポートをご用意しています。</p>
-      <p style="font-size:14px;color:#888;margin-bottom:16px;">※レポートはメールでお届けします</p>
-      <a target="_blank" rel="noopener" href="https://docs.google.com/forms/d/e/1FAIpQLSc-dwd_ciJ-3LMm9ZLgM5r_NLE4NjlzfjnhXV9aIPIJVAPUtg/viewform?usp=pp_url&entry.327276705=&entry.1061234786=&entry.1211377642=&entry.1004803223=${score}点&entry.1256568288=${level}" class="btn-cta" style="display:inline-block;border:none;cursor:pointer;">
-        無料レポートを受け取る 📧
-      </a>
-      <p style="font-size:13px;color:#999;margin-top:12px;">クリックするとGoogle Formsが開きます（所要1分）</p>
+      <h3>🔍 詳しい診断レポートを受け取る</h3>
+      <p>15問ではカバーしきれなかった詳細項目を含む<br>無料診断レポートをメールでお届けします。</p>
+      <div id="reportForm" style="max-width:400px;margin:0 auto;">
+        <input type="text" id="formName" placeholder="お名前" style="width:100%;padding:10px;margin-bottom:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+        <input type="text" id="formCompany" placeholder="会社名" style="width:100%;padding:10px;margin-bottom:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+        <input type="email" id="formEmail" placeholder="メールアドレス（必須）" style="width:100%;padding:10px;margin-bottom:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+        <button id="sendReportBtn" class="btn-cta" style="display:inline-block;border:none;cursor:pointer;width:100%;" onclick="sendReport()">
+          レポートを受け取る 📧
+        </button>
+        <p id="formStatus" style="font-size:13px;margin-top:8px;"></p>
+      </div>
     </div>
 
     <div class="result-cta" style="border-color:var(--primary);background:linear-gradient(135deg,#f0f4ff,#e8f0fe);margin-top:16px;">
       <h3 style="color:var(--primary);">💬 専門家に無料相談する</h3>
       <p>「診断結果を見て具体的に何をすればいいかわからない」<br>そんな方に、SCS対策の第一歩を30分でご提案します。</p>
-      <p style="font-size:13px;color:#777;margin-bottom:16px;">👇 右下のチャットアイコンからメッセージをお送りください</p>
       <a href="mailto:?subject=SCSかんたん診断について相談したい&body=SCSかんたん診断を利用しました。%0A%0A診断スコア：${score}点（${pct}%）%0A診断レベル：${level}%0A%0A無料相談を希望します。%0A【会社名】%0A【お名前】%0A【ご連絡先】" class="btn-cta" style="display:inline-block;border:none;cursor:pointer;background:var(--primary);">
         メールで相談する 📧
       </a>
@@ -509,6 +515,53 @@ function submitQuiz() {
 
   // Scroll to result
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Send report via Cloudflare Worker
+async function sendReport() {
+  const email = document.getElementById('formEmail').value.trim();
+  const name = document.getElementById('formName').value.trim();
+  const company = document.getElementById('formCompany').value.trim();
+  const statusEl = document.getElementById('formStatus');
+  const btn = document.getElementById('sendReportBtn');
+
+  if (!email) {
+    statusEl.style.color = '#ef4444';
+    statusEl.textContent = 'メールアドレスを入力してください';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+  statusEl.textContent = '';
+
+  try {
+    const total = questions.length * 2;
+    let score = Object.values(answers).reduce((a, b) => a + b, 0);
+    const pct = Math.round((score / total) * 100);
+    let level;
+    if (pct < 30) level = 'D';
+    else if (pct < 50) level = 'C';
+    else if (pct < 70) level = 'B';
+    else level = 'A';
+
+    const res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, company, score, level, breakdown: '' }),
+    });
+
+    if (!res.ok) throw new Error('送信失敗');
+
+    statusEl.style.color = '#22c55e';
+    statusEl.textContent = '✅ レポートを送信しました！メールをご確認ください。';
+    btn.textContent = '送信完了 ✓';
+  } catch (err) {
+    statusEl.style.color = '#ef4444';
+    statusEl.textContent = '❌ 送信に失敗しました。もう一度お試しください。';
+    btn.disabled = false;
+    btn.textContent = 'レポートを受け取る 📧';
+  }
 }
 
 function resetQuiz() {

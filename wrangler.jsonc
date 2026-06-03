@@ -1,17 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "scs-shindan",
+  "main": "worker.js",
   "compatibility_date": "2026-06-03",
-  "observability": {
-    "enabled": true
-  },
-  "assets": {
-    "directory": "."
-  },
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
-  "routes": [
-    { "pattern": "scs-shindan.com", "custom_domain": true }
-  ]
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "workers_dev": true
 }

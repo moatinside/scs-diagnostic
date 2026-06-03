@@ -1,0 +1,216 @@
+// SCS診断サイト Worker (HTML内蔵版)
+// GET → index.html を返す
+// POST → GASに転送
+
+const HTML = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SCSかんたん診断｜あなたの会社のセキュリティ評価レベルをチェック</title>
+<style>
+:root{--primary:#0f3460;--accent:#e94560;--bg:#f0f2f5;--card-bg:#fff;--text:#1a1a2e;--muted:#6c757d;--success:#2d6a4f;--warning:#e76f51;--danger:#e94560}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Hiragino Sans","Noto Sans JP","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
+.hero{background:linear-gradient(135deg,#0f3460 0%,#16213e 50%,#1a1a2e 100%);color:#fff;text-align:center;padding:80px 20px 60px}
+.hero h1{font-size:42px;font-weight:700;margin-bottom:12px;letter-spacing:-0.5px}
+.hero p{font-size:20px;opacity:.85;max-width:600px;margin:0 auto}
+.hero .badge{display:inline-block;background:var(--accent);color:#fff;padding:6px 20px;border-radius:30px;font-size:15px;font-weight:600;margin-bottom:20px}
+.hero .note{font-size:15px;opacity:.6;margin-top:16px}
+.container{max-width:720px;margin:0 auto;padding:0 16px}
+.info-strip{background:#fff5f5;border:1px solid #ffe0e0;border-radius:16px;padding:20px 24px;margin:-30px auto 30px;max-width:720px;font-size:16px;color:#555;position:relative;z-index:2}
+.info-strip strong{color:var(--accent)}
+.quiz-section{padding:30px 0 60px}
+.question-card{background:var(--card-bg);border-radius:20px;padding:28px 30px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:2px solid transparent;transition:all .2s}
+.question-card.answered{border-color:var(--primary);background:#f8faff}
+.q-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.q-number{background:var(--primary);color:#fff;width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+.q-category{font-size:13px;color:var(--muted);background:#eef3ff;padding:3px 12px;border-radius:20px;font-weight:500}
+.q-text{font-size:19px;font-weight:600;margin:8px 0 16px}
+.q-options{display:flex;gap:10px;flex-wrap:wrap}
+.q-options label{flex:1;min-width:100px;padding:12px 16px;border:2px solid #e0e4ea;border-radius:12px;text-align:center;cursor:pointer;font-size:16px;font-weight:500;transition:all .15s;user-select:none}
+.q-options label:hover{border-color:var(--primary);background:#f0f4ff}
+.q-options input[type="radio"]{display:none}
+.q-options input[type="radio"]:checked+label{border-color:var(--primary);background:var(--primary);color:#fff}
+.q-options .opt-no:checked+label{border-color:var(--danger);background:var(--danger);color:#fff}
+.q-options .opt-yes:checked+label{border-color:var(--success);background:var(--success);color:#fff}
+.progress-bar{position:sticky;top:0;z-index:10;background:#fff;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:20px;display:flex;align-items:center;gap:12px}
+.progress-track{flex:1;height:8px;background:#e8ecf1;border-radius:10px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));width:0;border-radius:10px;transition:width .4s ease}
+.progress-text{font-size:14px;color:var(--muted);font-weight:500;white-space:nowrap}
+.submit-area{text-align:center;padding:20px 0}
+.btn-primary{background:var(--primary);color:#fff;border:none;padding:18px 60px;border-radius:50px;font-size:20px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(15,52,96,.3)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(15,52,96,.4)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.result-section{display:none;padding:40px 0 80px}
+.result-card{background:var(--card-bg);border-radius:24px;padding:40px;box-shadow:0 8px 32px rgba(0,0,0,.10);text-align:center}
+.result-level{font-size:64px;font-weight:800;margin:16px 0}
+.result-label{font-size:24px;font-weight:700;margin-bottom:8px}
+.result-desc{font-size:18px;color:#555;max-width:500px;margin:0 auto 24px}
+.score-bar{height:12px;background:#e8ecf1;border-radius:10px;margin:20px 0;overflow:hidden}
+.score-fill{height:100%;border-radius:10px;transition:width 1s ease}
+.score-labels{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:24px}
+.result-cta{background:linear-gradient(135deg,#fff5f5,#ffe0e0);border:2px solid var(--accent);border-radius:16px;padding:28px;margin-top:24px}
+.result-cta h3{font-size:20px;color:var(--accent);margin-bottom:8px}
+.result-cta p{font-size:16px;color:#555;margin-bottom:16px}
+.btn-cta{display:inline-block;background:var(--accent);color:#fff;padding:14px 40px;border-radius:50px;font-size:18px;font-weight:700;text-decoration:none;transition:all .2s}
+.btn-cta:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(233,69,96,.4)}
+.btn-reset{display:inline-block;background:transparent;color:var(--muted);border:2px solid #ddd;padding:12px 32px;border-radius:50px;font-size:16px;cursor:pointer;margin-top:12px;text-decoration:none}
+.btn-reset:hover{border-color:var(--muted)}
+.breakdown{text-align:left;margin-top:28px}
+.breakdown h4{font-size:18px;margin-bottom:12px;color:var(--primary)}
+.breakdown-item{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee;font-size:15px}
+.breakdown-item .cat{color:var(--muted)}
+.breakdown-item .score{font-weight:600}
+.footer{text-align:center;padding:30px 16px;font-size:14px;color:var(--muted)}
+@media(max-width:500px){.hero h1{font-size:30px}.hero p{font-size:17px}.q-options{flex-direction:column}.q-options label{min-width:auto}.question-card{padding:20px}.result-card{padding:24px}.result-level{font-size:48px}}
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="badge">無料 ⚡ 3分で完了</div>
+  <h1>SCS<br>かんたん診断</h1>
+  <p>経済産業省が推進するSCS評価制度。<br>「ウチの会社、どれくらい準備できてる？」を15問でチェック</p>
+  <p class="note">※回答は匿名。個人情報は不要です。</p>
+</section>
+
+<div class="container">
+  <div class="info-strip">
+    💡 <strong>SCS評価制度</strong>とは、企業のサプライチェーンセキュリティの取組状況を<br>
+    ★1〜★5で評価する国の制度です。2026年度末から本格運用開始予定。
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar">
+  <span class="progress-text" id="progressText">0 / 15</span>
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<section class="quiz-section" id="quizSection">
+  <div class="container" id="questionsContainer"></div>
+  <div class="submit-area container">
+    <button class="btn-primary" id="submitBtn" disabled onclick="submitQuiz()">診断する 🚀</button>
+    <p style="font-size:14px;color:#999;margin-top:8px;">すべての質問に答えると診断できます</p>
+  </div>
+</section>
+
+<section class="result-section" id="resultSection">
+  <div class="container">
+    <div class="result-card" id="resultCard"></div>
+    <div style="text-align:center;margin-top:20px;">
+      <button class="btn-reset" onclick="resetQuiz()">もう一度診断する</button>
+    </div>
+  </div>
+</section>
+
+<div class="footer">SCSかんたん診断 v1.0</div>
+
+<script>
+const questions = [
+  {id:1,cat:"基本",text:"ISMS（ISO27001）やPマークを取得していますか？"},
+  {id:2,cat:"基本",text:"情報セキュリティ基本方針を文書化して社内周知していますか？"},
+  {id:3,cat:"基本",text:"セキュリティを担当する部署・専任者はいますか？"},
+  {id:4,cat:"体制",text:"従業員に対するセキュリティ教育・訓練を定期的に実施していますか？"},
+  {id:5,cat:"体制",text:"セキュリティインシデント発生時の対応手順は決まっていますか？"},
+  {id:6,cat:"体制",text:"セキュリティ関連の予算は確保されていますか？"},
+  {id:7,cat:"技術",text:"社内のPC・サーバーにウイルス対策ソフトを導入していますか？"},
+  {id:8,cat:"技術",text:"アクセス権限（パスワード・ID管理）は適切に管理されていますか？"},
+  {id:9,cat:"技術",text:"データのバックアップを定期的に取得していますか？"},
+  {id:10,cat:"技術",text:"社内外からのネットワークアクセスにファイアウォールを設定していますか？"},
+  {id:11,cat:"供給",text:"自社のサプライヤー（取引先）リストを全て把握していますか？"},
+  {id:12,cat:"供給",text:"取引先のセキュリティ評価を実施したことがありますか？"},
+  {id:13,cat:"供給",text:"部品表（BOM）はデジタル管理されていますか？"},
+  {id:14,cat:"供給",text:"製造終了（EOL）部品の管理体制はありますか？"},
+  {id:15,cat:"外部",text:"取引先からセキュリティ評価依頼を受けたことがありますか？"}
+];
+const answers = {};
+function renderQuestions(){
+  const c=document.getElementById('questionsContainer');
+  c.innerHTML=questions.map((q,i)=>'<div class="question-card" id="qCard'+q.id+'"><div class="q-header"><span class="q-number">'+(i+1)+'</span><span class="q-category">'+q.cat+'</span></div><div class="q-text">'+q.text+'</div><div class="q-options"><input type="radio" name="q'+q.id+'" id="q'+q.id+'_no" value="0" class="opt-no" onchange="answer('+q.id+',0)"><label for="q'+q.id+'_no">❌ いいえ</label><input type="radio" name="q'+q.id+'" id="q'+q.id+'_partial" value="1" onchange="answer('+q.id+',1)"><label for="q'+q.id+'_partial">△ 一部対応</label><input type="radio" name="q'+q.id+'" id="q'+q.id+'_yes" value="2" class="opt-yes" onchange="answer('+q.id+',2)"><label for="q'+q.id+'_yes">✅ はい</label></div></div>').join('');
+}
+function answer(id,val){answers[id]=val;document.getElementById('qCard'+id).classList.add('answered');updateProgress();}
+function updateProgress(){const a=Object.keys(answers).length;const t=questions.length;document.getElementById('progressText').textContent=a+' / '+t;document.getElementById('progressFill').style.width=(a/t*100)+'%';document.getElementById('submitBtn').disabled=a<t;}
+
+function submitQuiz(){
+  const total=questions.length*2;let score=Object.values(answers).reduce((a,b)=>a+b,0);const pct=Math.round(score/total*100);
+  let level,label,desc,color;
+  if(pct<30){level="★1";label="SCS未対応レベル";color="#6c757d";desc="セキュリティ対策の基礎から整備が必要な状態です。"}
+  else if(pct<50){level="★2";label="SCS準備レベル";color="#fd7e14";desc="基本的な対策は始まっていますが、仕組みとして整備できていません。"}
+  else if(pct<70){level="★3";label="SCS目標レベル";color="#0f3460";desc="一定のセキュリティ対策は取れています。SCS★3取得に向けて準備を進めましょう。"}
+  else{level="★3+";label="SCS取得目前";color="#2d6a4f";desc="高い水準でセキュリティ対策が整っています。あとは第三者評価を受けるだけです。"}
+  
+  const categories={};questions.forEach(q=>{if(!categories[q.cat])categories[q.cat]={total:0,score:0,count:0};categories[q.cat].total+=2;categories[q.cat].score+=(answers[q.id]||0);categories[q.cat].count++;});
+  const bh=Object.entries(categories).map(([cat,d])=>{const cp=Math.round(d.score/d.total*100);return '<div class="breakdown-item"><span class="cat">'+(cat==="基本"?"📋 基本":cat==="体制"?"👥 体制":cat==="技術"?"🖥️ 技術":cat==="供給"?"🔗 供給":"🌐 外部")+'</span><span class="score">'+d.score+'/'+d.total+' ('+cp+'%)</span></div>';}).join('');
+
+  const html='<p style="font-size:18px;color:#888;">あなたのSCS対応度</p><div class="result-level" style="color:'+color+'">'+level+'</div><div class="result-label">'+label+'</div><div class="result-desc">'+desc+'</div><div style="margin:8px 0;"><span style="font-size:32px;font-weight:700;color:'+color+'">'+score+'</span><span style="font-size:18px;color:#888;"> / '+total+' 点（'+pct+'%）</span></div><div class="score-bar"><div class="score-fill" style="width:'+pct+'%;background:'+color+';"></div></div><div class="score-labels"><span>★1 未対応</span><span>★2 準備中</span><span>★3 目標</span><span>★3+ 取得目前</span></div><div class="breakdown"><h4>📊 カテゴリ別スコア</h4>'+bh+'</div>'
+  +'<div class="result-cta" style="border-color:var(--warning);background:linear-gradient(135deg,#fff9f0,#fff3e6);margin-top:24px;"><h3 style="color:var(--warning);">⚠️ SCS★3取得後の運用負荷を試算</h3><p style="font-size:15px;color:#555;margin-bottom:12px;">SCSは「取って終わり」ではありません。取得後も継続的な証跡管理・定期レビュー・教育訓練の実施が必要です。</p><div style="text-align:left;background:rgba(255,255,255,0.7);border-radius:12px;padding:16px;margin:12px 0;"><div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:14px;"><span style="font-weight:600;">あなたのレベル</span><span style="font-weight:700;color:'+color+';">'+level+'（'+pct+'%）</span></div><div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:14px;"><span>★3取得後・月間運用負荷（推計）</span><span style="font-weight:700;color:var(--warning);">'+(pct<30?'月10〜15時間':pct<50?'月8〜12時間':pct<70?'月5〜8時間':'月2〜5時間')+'</span></div><div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;"><span>年間換算</span><span style="font-weight:700;color:var(--warning);">'+(pct<30?'120〜180時間':pct<50?'96〜144時間':pct<70?'60〜96時間':'24〜60時間')+'</span></div></div><p style="font-size:15px;color:#555;">「ひとり情シス」でこれ、現実的ですか？<br><strong style="color:var(--accent);">年50万円で運用負担をまるごと代行</strong>するサービスがあります。</p></div>'
+  +'<div class="result-cta"><h3>🔍 詳しい診断レポートを受け取る</h3><p>15問ではカバーしきれなかった詳細項目を含む<br>無料診断レポートをメールでお届けします。</p><div id="reportForm" style="max-width:400px;margin:0 auto;"><input type="text" id="formName" placeholder="お名前" style="width:100%;padding:10px;margin-bottom:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;"><input type="text" id="formCompany" placeholder="会社名" style="width:100%;padding:10px;margin-bottom:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;"><input type="email" id="formEmail" placeholder="メールアドレス（必須）" style="width:100%;padding:10px;margin-bottom:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;"><button id="sendReportBtn" class="btn-cta" style="display:inline-block;border:none;cursor:pointer;width:100%;" onclick="sendReport()">レポートを受け取る 📧</button><p id="formStatus" style="font-size:13px;margin-top:8px;"></p></div></div>'
+  +'<div class="result-cta" style="border-color:var(--primary);background:linear-gradient(135deg,#f0f4ff,#e8f0fe);margin-top:16px;"><h3 style="color:var(--primary);">💬 専門家に無料相談する</h3><p>「診断結果を見て具体的に何をすればいいかわからない」<br>そんな方に、SCS対策の第一歩を30分でご提案します。</p><a href="mailto:?subject=SCSかんたん診断について相談したい&body=SCSかんたん診断を利用しました。%0A%0A診断スコア：'+score+'点（'+pct+'%）%0A診断レベル：'+level+'%0A%0A無料相談を希望します。%0A【会社名】%0A【お名前】%0A【ご連絡先】" class="btn-cta" style="display:inline-block;border:none;cursor:pointer;background:var(--primary);">メールで相談する 📧</a><p style="font-size:13px;color:#999;margin-top:12px;">チャット or メール、お好きな方法でどうぞ</p></div>';
+  
+  document.getElementById('resultCard').innerHTML=html;
+  document.getElementById('quizSection').style.display='none';
+  document.getElementById('resultSection').style.display='block';
+  document.getElementById('progressBar').style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function sendReport(){
+  const email=document.getElementById('formEmail').value.trim();
+  const name=document.getElementById('formName').value.trim();
+  const company=document.getElementById('formCompany').value.trim();
+  const statusEl=document.getElementById('formStatus');
+  const btn=document.getElementById('sendReportBtn');
+  if(!email){statusEl.style.color='#ef4444';statusEl.textContent='メールアドレスを入力してください';return;}
+  btn.disabled=true;btn.textContent='送信中...';statusEl.textContent='';
+  try{
+    const total=questions.length*2;let score=Object.values(answers).reduce((a,b)=>a+b,0);const pct=Math.round(score/total*100);
+    let level;if(pct<30)level='D';else if(pct<50)level='C';else if(pct<70)level='B';else level='A';
+    const res=await fetch('https://scs-email-worker.funkapart.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,company,score,level,breakdown:''})});
+    if(!res.ok)throw new Error('送信失敗');
+    statusEl.style.color='#22c55e';statusEl.textContent='✅ レポートを送信しました！メールをご確認ください。';btn.textContent='送信完了 ✓';
+  }catch(err){statusEl.style.color='#ef4444';statusEl.textContent='❌ 送信に失敗しました。もう一度お試しください。';btn.disabled=false;btn.textContent='レポートを受け取る 📧';}
+}
+
+function resetQuiz(){Object.keys(answers).forEach(k=>delete answers[k]);document.querySelectorAll('input[type="radio"]:checked').forEach(el=>el.checked=false);document.querySelectorAll('.question-card').forEach(el=>el.classList.remove('answered'));document.getElementById('quizSection').style.display='block';document.getElementById('resultSection').style.display='none';document.getElementById('progressBar').style.display='flex';updateProgress();window.scrollTo({top:0,behavior:'smooth'});}
+renderQuestions();updateProgress();
+</script>
+</body>
+</html>`;
+
+export default {
+  async fetch(req, env) {
+    const url = new URL(req.url);
+    
+    // POST = email workerへ転送
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        if (!body.email) {
+          return new Response(JSON.stringify({error:'メールアドレスは必須です'}), {status:400, headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}});
+        }
+        const workerUrl = env.EMAIL_WORKER_URL || 'https://scs-email-worker.funkapart.workers.dev';
+        const res = await fetch(workerUrl, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        return new Response(JSON.stringify(data), {
+          status: res.ok ? 200 : 502,
+          headers: {'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}
+        });
+      } catch(err) {
+        return new Response(JSON.stringify({error:err.message}), {status:500, headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}});
+      }
+    }
+    
+    // GET = HTMLを返す
+    return new Response(HTML, {
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'public, max-age=0, must-revalidate'
+      }
+    });
+  }
+};
